@@ -1,22 +1,53 @@
-
 "use client";
 
 import { useRouter } from "next/navigation";
 import Image from "next/image";
+import { useState } from "react";
 
 export default function Home() {
   const router = useRouter();
 
-  const handleLogin = (e: React.FormEvent) => {
+  const [email, setEmail] = useState("");
+  const [password, setPassword] = useState("");
+  const [error, setError] = useState("");
+  const [loading, setLoading] = useState(false);
+
+  const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault();
-    router.push("/dashboard"); 
+    setError("");
+    setLoading(true);
+
+    try {
+      const res = await fetch("/api/auth/login", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ email, password }),
+      });
+
+      const data = await res.json();
+
+      if (res.ok) {
+        localStorage.setItem("userEmail", email); 
+        if (email === "admin@sistema.com") {
+          router.push("/dashboard"); 
+        } else {
+          router.push("/inicio"); 
+        }
+      } else {
+        setError(data.message);
+      }
+    } catch (err) {
+      setError("Error al conectar con el servidor.");
+    } finally {
+      setLoading(false);
+    }
   };
 
   return (
-    <div className="flex flex-1 items-center justify-center p-6 font-sans antialiased">
+    <div className="flex flex-1 items-center justify-center p-6 font-sans antialiased min-h-screen">
       <div className="w-full max-w-[420px] rounded-3xl bg-white shadow-2xl shadow-slate-200/60 border border-slate-100 overflow-hidden">
         
-        <div className="w-full flex">
+        <div className="w-full flex bg-slate-50">
           <Image 
             src="/logo-jovenesinvolucrados.png" 
             alt="Jóvenes Involucrados 2026"
@@ -35,12 +66,22 @@ export default function Home() {
           </div>
 
           <form onSubmit={handleLogin} className="space-y-4">
+            
+            {/* Mensaje de error */}
+            {error && (
+              <div className="p-3 bg-red-50 border border-red-200 text-red-600 rounded-xl text-sm text-center font-medium">
+                {error}
+              </div>
+            )}
+
             <div className="space-y-1.5">
               <label className="text-xs font-bold uppercase tracking-wider text-slate-500 ml-1">
                 Email
               </label>
               <input 
                 type="email" 
+                value={email}
+                onChange={(e) => setEmail(e.target.value)}
                 placeholder="usuario@palabradevida.org" 
                 className="w-full rounded-xl border border-slate-200 bg-slate-50 px-4 py-3 text-sm transition-all focus:border-blue-500 focus:bg-white focus:outline-none focus:ring-4 focus:ring-blue-500/10 text-slate-900"
                 required
@@ -53,17 +94,26 @@ export default function Home() {
               </label>
               <input 
                 type="password" 
+                value={password}
+                onChange={(e) => setPassword(e.target.value)}
                 placeholder="••••••••" 
                 className="w-full rounded-xl border border-slate-200 bg-slate-50 px-4 py-3 text-sm transition-all focus:border-blue-500 focus:bg-white focus:outline-none focus:ring-4 focus:ring-blue-500/10 text-slate-900"
                 required
               />
             </div>
+            
             <div className="pt-2 space-y-4"></div>
+            
             <button 
               type="submit"
-              className="cursor-pointer w-full rounded-xl bg-blue-600 px-4 py-3.5 text-sm font-bold text-white transition-all hover:bg-blue-700 hover:shadow-lg hover:shadow-blue-500/30 active:scale-[0.98] mt-2 shadow-sm"
+              disabled={loading}
+              className={`w-full rounded-xl px-4 py-3.5 text-sm font-bold text-white transition-all shadow-md ${
+                loading 
+                  ? "bg-blue-400 cursor-not-allowed" 
+                  : "bg-blue-600 hover:bg-blue-700 hover:shadow-lg hover:shadow-blue-500/30 active:scale-[0.98] cursor-pointer"
+              }`}
             >
-              Entrar al Sistema
+              {loading ? "Verificando..." : "Entrar al Sistema"}
             </button>
 
             <div className="text-center">
